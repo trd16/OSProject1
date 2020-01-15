@@ -1,1 +1,6 @@
 # OSProject1
+Built-Ins:
+  cd
+  pwd
+  jobs
+  exit
