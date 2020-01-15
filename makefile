@@ -1,5 +1,5 @@
 shell: shellP1.c
-        gcc shellP1.c -o shell
+        gcc -std=c99 shellP1.c -o shell
 
 clean:
         rm -f shell
