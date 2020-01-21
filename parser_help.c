@@ -36,6 +36,7 @@ void printTokens(instruction* instr_ptr);
 int isPath(char* token);
 char* expandPath(char* path);
 int isValidDir(char* path);
+int isValidFile(char* path);
 
 int main() {
 	char* token = NULL;
