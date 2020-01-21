@@ -10,6 +10,18 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <dirent.h>
+#include <errno.h>
+#include <unistd.h>
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 typedef struct
 {
 	char** tokens;
@@ -17,9 +29,13 @@ typedef struct
 } instruction;
 
 void addToken(instruction* instr_ptr, char* tok);
-void printTokens(instruction* instr_ptr);
 void clearInstruction(instruction* instr_ptr);
 void addNull(instruction* instr_ptr);
+void printTokens(instruction* instr_ptr);
+
+int isPath(char* token);
+char* expandPath(char* path);
+int isValidDir(char* path);
 
 int main() {
 	char* token = NULL;
@@ -28,7 +44,6 @@ int main() {
 	instruction instr;
 	instr.tokens = NULL;
 	instr.numTokens = 0;
-
 
 	while (1) {
 		printf("%s",getenv("USER"));
@@ -76,9 +91,18 @@ int main() {
 			token = NULL;
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
-
+		
+		//loop through all tokens
+		int i;
+		for (i =0; i < instr.numTokens; ++i)
+		{
+			if (isPath(instr.tokens[i]))
+				instr.tokens[i] = expandPath(instr.tokens[i]);
+			printf("%s ", instr.tokens[i]);
+		}
+		printf("\n");
+		
 		addNull(&instr);
-		printTokens(&instr);
 		clearInstruction(&instr);
 	}
 
@@ -114,16 +138,6 @@ void addNull(instruction* instr_ptr)
 	instr_ptr->numTokens++;
 }
 
-void printTokens(instruction* instr_ptr)
-{
-	int i;
-	printf("Tokens:\n");
-	for (i = 0; i < instr_ptr->numTokens; i++) {
-		if ((instr_ptr->tokens)[i] != NULL)
-			printf("%s\n", (instr_ptr->tokens)[i]);
-	}
-}
-
 void clearInstruction(instruction* instr_ptr)
 {
 	int i;
@@ -134,4 +148,156 @@ void clearInstruction(instruction* instr_ptr)
 
 	instr_ptr->tokens = NULL;
 	instr_ptr->numTokens = 0;
+}
+
+int isPath(char* token)
+{
+	int i;
+	for (i = 0; i < strlen(token); ++i)
+	{
+		if (token[i] == '/' || token[i] == '~')
+			return TRUE;
+	}
+	return FALSE;
+}
+
+char* expandPath(char* path)
+{
+	char* newPath;
+	
+	//set ~ to home directory
+	if (path[0] == '~')
+	{
+		//set the lenght of the newPath string
+		int len = strlen(newPath) + strlen(getenv("HOME"));
+		newPath = (char*)malloc((len) * sizeof(char));
+		strcpy(newPath, getenv("HOME"));
+		
+		//add the path after '~' to the end of HOME
+		int i, j = strlen(newPath);
+		for (i = 1; i < strlen(path); ++i)
+			newPath[j++] = path[i];
+		newPath[j] = '\0';
+	}
+	//relative path
+	else if (path[0] != '/')
+	{
+		int len = strlen(getenv("PWD")) + strlen(path);
+		newPath = (char*)malloc((len + 2) * sizeof(char));
+		strcpy(newPath, getenv("PWD"));
+		strcat(newPath, "/");
+		strcat(newPath, path);
+	}
+	//from root dir
+	else
+	{
+		newPath = (char*)malloc((strlen(path) + 1) * sizeof(char));
+		strcpy(newPath, path);
+	}
+	
+	//return newPath if no further directories to expand. ie at root
+	int numDirs = numberOfDirs(newPath);
+	if (numDirs == 0)
+		return newPath;
+	
+	char** pathArray = (char**)malloc(numDirs * sizeof(char*));
+	int i, j;
+	for (i = 0; i < numDirs; ++i)
+		pathArray[i] = (char*)malloc(strlen(newPath) * sizeof(char*));
+	
+	i = 0;
+	//split path into array
+	char* ptr = strtok(newPath, "/");
+	while (ptr != NULL)
+	{
+		//decrement i on ..
+		if (strcmp(ptr, "..") == 0)
+		{
+			if (i == 0)
+				return NULL;
+			--i;
+		}
+		//only add directory to array if not . or ..
+		else if (strcmp(ptr, ".") != 0)
+			strcpy(pathArray[i++], ptr);
+		
+		ptr = strtok(NULL, "/");
+	}
+	
+	//root
+	strcpy(newPath, "/");
+	for (j = 0; j < numDirs; ++j)
+	{
+		//add directory to path
+		if (j < i)
+		{
+			if (j != 0)
+				strcat(newPath, "/");
+			strcat(newPath, pathArray[j]);
+		}
+		free(pathArray[j]);
+	}
+	free(pathArray);
+	
+	return newPath;
+}
+
+int numberOfDirs(char* path)
+{
+	if (path == NULL || strlen(path) <= 1)
+		return 0;
+	
+	int num = 0, i;
+	for (i = 0; i < strlen(path); ++i)
+	{
+		if (path[i] == '/')
+			++num;
+	}
+	return num;
+}
+
+int isValidDir(char* path)
+{
+	DIR* dir = opendir(path);
+	if (dir)
+	{
+		closedir(dir);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+int isValidFile(char* path)
+{
+	if (access(path, F_OK) != -1)
+		return TRUE;
+	return FALSE;
+}
+
+char* resolvePath(char* path)
+{
+	if (path[0] == '/')
+		return path;
+	
+	char PATHenv[256];
+	strcpy(PATHenv, getenv("PATH"));
+	
+	//split PATH into array
+	char* ptr = strtok(PATHenv, ":");
+	while (ptr != NULL)
+	{
+		int size = (int)(strlen(PATHenv) + strlen(path)) + 2;
+		char* newPath = (char*)malloc(size * sizeof(char));
+		strcpy(newPath, ptr);
+		strcat(newPath, "/");
+		strcat(newPath, path);
+		
+		if (isValidFile)
+			return newPath;
+		free(newPath);
+		char* ptr = strtok(NULL, ":");
+	}
+	
+	//not found
+	return NULL;
 }
