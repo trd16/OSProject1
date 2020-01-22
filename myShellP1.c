@@ -14,6 +14,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <ctype.h>
+
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -31,13 +33,16 @@ typedef struct
 void addToken(instruction* instr_ptr, char* tok);
 void clearInstruction(instruction* instr_ptr);
 void addNull(instruction* instr_ptr);
-void printTokens(instruction* instr_ptr);
+void printTokens(char* instruction);
 
 int isPath(char* token);
 char* expandPath(char* path);
 int isValidDir(char* path);
 
 void inputCheck(instruction* instr);		//checks user input
+char * checkEnv(char * tkn);
+void echoToks(char** toks,int numToks);
+
 
 
 int main() {
@@ -318,27 +323,16 @@ void inputCheck(instruction* instr)
 	if(numToks-1 > 0)
 	{
 		if(strcmp(toks[0],"echo") == 0)
+        {	
+            echoToks(toks,numToks);
+        }
+		else if(strcmp(toks[0],"cd") == 0)	
 		{			
-			printf("%i ",(numToks));
-			for(int i = 1;i < numToks - 1; i++)		//loops thru all input
-			{				
-				if(toks[i][0] == '$')
-				{
-					printf("%s ",getenv(toks[i]));
-				}
-				else
-					printf("%s ",toks[i]);
-			}
-			printf("\n");
-		}
-		else if(strcmp(toks[0],"cd") == 0)	//cd
-		{			
-            //if no specified directory --> HOME
+            //if no specified directory
 			if(toks[1] == NULL)
 				chdir(getenv("HOME"));
 			else
 				chdir(toks[1]);
-			
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
@@ -355,4 +349,29 @@ void inputCheck(instruction* instr)
 		}
 		
 	}
+}
+
+char * checkEnv(char * tkn)
+{
+	memmove(tkn, tkn+1, strlen (tkn+1) + 1);
+	for(int i = 0;i < strlen(tkn);i++)
+	{
+		toupper(tkn[i]);
+	}
+	return tkn;
+}
+
+void echoToks(char** toks,int numToks)
+{
+			for(int i = 1;i < numToks - 1; i++)		//loops thru all input
+			{				
+				if(toks[i][0] == '$')
+                {
+                    checkEnv(toks[i]);
+					printf("%s ",getenv(toks[i]));
+                }
+				else
+					printf("%s ",toks[i]);
+			}
+			printf("\n");
 }
