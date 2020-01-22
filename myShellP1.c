@@ -36,9 +36,12 @@ void printTokens(instruction* instr_ptr);
 int isPath(char* token);
 char* expandPath(char* path);
 int isValidDir(char* path);
-int isValidFile(char* path);
+
+void inputCheck(instruction* instr);		//checks user input
+
 
 int main() {
+    char buffer[200];
 	char* token = NULL;
 	char* temp = NULL;
 
@@ -50,7 +53,7 @@ int main() {
 		printf("%s",getenv("USER"));
         printf("@");
         printf("%s",getenv("MACHINE"));
-        printf(":%s>",getenv("PWD"));
+        printf(":%s>",getcwd(buffer, sizeof buffer));
 
 		// loop reads character sequences separated by whitespace
 		do {
@@ -104,6 +107,7 @@ int main() {
 		printf("\n");
 		
 		addNull(&instr);
+        inputCheck(&instr);
 		clearInstruction(&instr);
 	}
 
@@ -301,4 +305,54 @@ char* resolvePath(char* path)
 	
 	//not found
 	return NULL;
+}
+
+
+void inputCheck(instruction* instr)
+{
+	char **toks = instr->tokens;
+
+	int numToks = instr->numTokens;
+
+
+	if(numToks-1 > 0)
+	{
+		if(strcmp(toks[0],"echo") == 0)
+		{			
+			printf("%i ",(numToks));
+			for(int i = 1;i < numToks - 1; i++)		//loops thru all input
+			{				
+				if(toks[i][0] == '$')
+				{
+					printf("%s ",getenv(toks[i]));
+				}
+				else
+					printf("%s ",toks[i]);
+			}
+			printf("\n");
+		}
+		else if(strcmp(toks[0],"cd") == 0)	//cd
+		{			
+            //if no specified directory --> HOME
+			if(toks[1] == NULL)
+				chdir(getenv("HOME"));
+			else
+				chdir(toks[1]);
+			
+		}
+		else if(strcmp(toks[0],"jobs") == 0)
+		{
+			
+		}
+		else if(strcmp(toks[0],"exit") == 0)
+		{
+			clearInstruction(&(*instr));
+			exit(0);
+		}
+		else
+		{
+			printf("%s: Command not found\n",toks[0]);
+		}
+		
+	}
 }
