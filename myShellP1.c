@@ -15,6 +15,8 @@
 #include <unistd.h>
 
 #include <ctype.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -46,6 +48,9 @@ void echoToks(char** toks,int numToks);
 
 
 int main() {
+    pid_t child_pids[1000], f;      //child_pids[child_nb++] = f;   //use after forking where f = fork()
+    int child_nb=0;
+
     char buffer[200];
 	char* token = NULL;
 	char* temp = NULL;
@@ -328,11 +333,19 @@ void inputCheck(instruction* instr)
         }
 		else if(strcmp(toks[0],"cd") == 0)	
 		{			
+            char buffer[200];
+
             //if no specified directory
 			if(toks[1] == NULL)
-				chdir(getenv("HOME"));
+            {
+				if(chdir(getenv("HOME")) == 0)
+                    setenv("PWD",getcwd(buffer, sizeof buffer),1);
+            }
 			else
-				chdir(toks[1]);
+            {
+				if(chdir(toks[1]) == 0)
+                    setenv("PWD",getcwd(buffer, sizeof buffer),1);
+            }
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
@@ -340,6 +353,9 @@ void inputCheck(instruction* instr)
 		}
 		else if(strcmp(toks[0],"exit") == 0)
 		{
+            int status;
+            waitpid(-1,&status,0);
+
 			clearInstruction(&(*instr));
 			exit(0);
 		}
@@ -355,9 +371,7 @@ char * checkEnv(char * tkn)
 {
 	memmove(tkn, tkn+1, strlen (tkn+1) + 1);
 	for(int i = 0;i < strlen(tkn);i++)
-	{
 		toupper(tkn[i]);
-	}
 	return tkn;
 }
 
