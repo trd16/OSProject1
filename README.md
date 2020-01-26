@@ -1,33 +1,27 @@
 # OSProject1
-Built-Ins:
-  cd
-  pwd
-  jobs
-  exit
-  echo
-
-Commands Needed
-
-
-
 __________________________________________________________________
+Contributions
+-------------
+Scott: 
+Thomas: 
+Taylor: 
 
-
-Scott: Built-Ins
-Thomas: Parsing, Shortcut Resolution, Paths Resolution
-Taylor: Execution, I/O Redirection, Piping
-
-Tar-Archive Contents:
+Tar-Archive Contents
+--------------------
 parser_help.c:
 makefile:
 
-How We Compile Our Executables Using Makefile:
+How We Compile Our Executables Using Makefile
+---------------------------------------------
 
 
-Known Bugs:
+Known Bugs
+-----------
 
 
-Unfinished Portions of the Project:
+Unfinished Portions of the Project
+------------------------------------
 
 
-Special Considerations:
+Special Considerations
+------------------------
