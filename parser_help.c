@@ -27,6 +27,11 @@
 #define FALSE 0
 #endif
 
+#define _POSIX_C_SOURCE
+#define _GNU_SOURCE
+#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
+
 typedef struct
 {
 	char** tokens;
@@ -40,6 +45,7 @@ void printTokens(instruction* instr_ptr);
 
 int isPath(char* token);
 char* expandPath(char* path);
+char* resolvePath(char* path);
 int isValidDir(char* path);
 int isValidFile(char* path);
 
@@ -48,6 +54,7 @@ void iRedirection(char* command, char* file);
 void oRedirection(char* command, char* file);
 void pipeImplementation(char* command1, char* command2);
 
+int isBuiltIn(char* token);
 void builtIns(instruction* instr);		//checks user input
 char * checkEnv(char * tkn);
 void echoToks(char** toks,int numToks);
@@ -115,72 +122,119 @@ int main() {
 		if(strcmp(instr.tokens[0],"|")==0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
 		{
 			printf("Invalid Syntax\n");
-			return -1;
+			addNull(&instr);
+			clearInstruction(&instr);
+			continue;
 		}
-
-		if(strcmp(instr.tokens[instr.numTokens-1], "|") == 0 || strcmp(instr.tokens[instr.numTokens - 1], "<") == 0 || strcmp(instr.tokens[instr.numTokens - 1],">") == 0)
+		if(strcmp(instr.tokens[instr.numTokens-1], "|") == 0 || strcmp(instr.tokens[instr.numTokens - 1], "<") == 0 
+			|| strcmp(instr.tokens[instr.numTokens - 1],">") == 0)
 		{
 			printf("Invalid Syntax\n");
-			return -1;
-		}	
-
-
-
-
-		//loop through all tokens
-		int i;
-		for (i =0; i < instr.numTokens; ++i)
-		{
-			if (isPath(instr.tokens[i]))
-				instr.tokens[i] = expandPath(instr.tokens[i]);
-
-			printf("%s ", instr.tokens[i]);
-
-
-		}
-		printf("\n");
-
-		//checking for I/O Redirection & Piping
-		int j;
-		for(j = 0; j < instr.numTokens; ++j)
-		{
-			if(strcmp(instr.tokens[j], "<") == 0)
-			{
-				char* command = instr.tokens[j - 1];
-				char* file = instr.tokens[j + 1]; 
-				iRedirection(command, file);
-			}
-			if(strcmp(instr.tokens[j], ">") == 0)
-			{
-				char* command = instr.tokens[j-1];
-				char* file = instr.tokens[j+1];
-				oRedirection(command, file);
-			}
-			if(strcmp(instr.tokens[j],"|") == 0)
-			{
-				char* command1 = instr.tokens[j-1];
-				char* command2 = instr.tokens[j+1];
-				pipeImplementation(command1, command2);
-			}
-
+			addNull(&instr);
+			clearInstruction(&instr);
+			continue;
 		}
 
+		//loop through all tokens to find errors
+		int i, iredir = FALSE, oredir, pipes = 0, background = FALSE;
+		for (i = 0; i < instr.numTokens; ++i)
+		{
+			if (isBuiltIn(instr.tokens[i]))
+			{
+				builtIns(&instr);
+				break;
+			}
+			//output redirection
+			else if (strcmp(instr.tokens[i], ">") == 0) 
+			{
+				if (oredir)
+				{
+					printf("ERROR: Multiple redirections of the same type are not allowed\n");
+					break;
+				}
+				oredir = TRUE;
+			}
+			//input redirection
+			else if (strcmp(instr.tokens[i], "<") == 0)
+			{
+				if (iredir)
+				{
+					printf("ERROR: Multiple redirections of the same type are not allowed\n");
+					break;
+				}
+				iredir = TRUE;
+			}
+			//Pipes
+			else if (strcmp(instr.tokens[i], "|") == 0)
+			{
+				if (++pipes > 2)
+				{
+					printf("ERROR: No more than two pipes are allowed at once");
+					break;
+				}
+			}
+			//background processing
+			else if (strcmp(instr.tokens[i], "&"))
+			{
+				background = TRUE;
+			}
+			else 
+			{
+				instr.tokens[i] = resolvePath(instr.tokens[i]);
+				if (instr.tokens[i] == NULL){
+					if (i == 0 || i == 1 && strcmp(instr.tokens[i], "&") == 0)
+						printf("Unknown command\n");
+					else
+						printf("No such file or path");
+				}
+				//if (stat(file, &sb) == 0 && sb.st_mode & S_IXUSR) 
+			}
+			
+			//pipes and redirection not allowed at same time
+			if (pipes && (iredir || oredir))
+			{
+				printf("ERROR: Pipes and I/O redirection cannot occur together\n");
+				break;
+			}
+		}
 
 
-		printf("Token 1: %s", instr.tokens[0]);		
-		printf("\n");
-		printf("Token 2: %s", instr.tokens[1]);
-		printf("\n");
-		printf("Token 3: %s", instr.tokens[2]);
-		printf("\n");
-
-		
-		
-		//execution
-		execute(instr.tokens);
-
-		//built ins
-		builtIns(&instr);
+		if (iredir || oredir)
+		{
+			//checking for I/O Redirection & Piping
+			int j;
+			for(j = 0; j < instr.numTokens; ++j)
+			{
+				if(strcmp(instr.tokens[j], "<") == 0)
+				{
+					char* command = instr.tokens[j - 1];
+					char* file = instr.tokens[j + 1]; 
+					iRedirection(command, file);
+				}
+				if(strcmp(instr.tokens[j], ">") == 0)
+				{
+					char* command = instr.tokens[j-1];
+					char* file = instr.tokens[j+1];
+					oRedirection(command, file);
+				}
+			}
+		}
+		else if (pipes)
+		{
+			int j;
+			for(j = 0; j < instr.numTokens; ++j)
+			{ 
+				if(strcmp(instr.tokens[j],"|") == 0)
+				{
+					char* command1 = instr.tokens[j-1];
+					char* command2 = instr.tokens[j+1];
+					pipeImplementation(command1, command2);
+				}
+			}
+		}
+		//normal execution
+		else 
+			execute(instr.tokens);
 
 		addNull(&instr);
 		clearInstruction(&instr);
@@ -491,6 +545,13 @@ void pipeImplementation(char* command1, char* command2)
 	*/
 }
 
+int isBuiltIn(char* token)
+{
+	if (strcmp(token, "exit") == 0 || strcmp(token, "cd") == 0 
+	|| strcmp(token, "echo") == 0 || strcmp(token, "jobs"))
+		return TRUE;
+	return FALSE;
+}
 
 void builtIns(instruction* instr)
 {
@@ -523,19 +584,10 @@ void builtIns(instruction* instr)
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
-           		char command[1024];
-			char path[100];
-
-           		 for(int i = 1;i < child_nb;i++)
-			{
-				sprintf(path,"/proc/%d/cmdline",child_pids[i]);
-				//puts(path);
-				FILE * fp = fopen(path,"r");
-				fgets(command,sizeof command, fp);
-				//puts(command);
-				fclose(fp);
-               			 printf("%d    %d    %s\n",i,child_pids[i],command);
-			}
+            for(int i = 0;i < child_nb;i++)
+            {
+                printf("%d    %d    %d\n",i,child_pids[i],child_pids[i]);
+            }
 			
 		}
 		else if(strcmp(toks[0],"exit") == 0)
