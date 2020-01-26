@@ -523,10 +523,19 @@ void builtIns(instruction* instr)
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
-            for(int i = 0;i < child_nb;i++)
-            {
-                printf("%d    %d    %d\n",i,child_pids[i],child_pids[i]);
-            }
+           		char command[1024];
+			char path[100];
+
+           		 for(int i = 1;i < child_nb;i++)
+			{
+				sprintf(path,"/proc/%d/cmdline",child_pids[i]);
+				//puts(path);
+				FILE * fp = fopen(path,"r");
+				fgets(command,sizeof command, fp);
+				//puts(command);
+				fclose(fp);
+               			 printf("%d    %d    %s\n",i,child_pids[i],command);
+			}
 			
 		}
 		else if(strcmp(toks[0],"exit") == 0)
