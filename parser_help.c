@@ -13,6 +13,10 @@
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -37,6 +41,10 @@ int isPath(char* token);
 char* expandPath(char* path);
 int isValidDir(char* path);
 int isValidFile(char* path);
+
+void execute(char** cmd);
+void iRedirection(char* command, char* file);
+void oRedirection(char* command, char* file);
 
 int main() {
 	char* token = NULL;
@@ -92,16 +100,63 @@ int main() {
 			token = NULL;
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
+
+		//checking for I/O Errors, Piping Errors
+		if(strcmp(instr.tokens[0],"|")==0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
+		{
+			printf("Invalid Syntax\n");
+			return -1;
+		}
+
+		if(strcmp(instr.tokens[instr.numTokens-1], "|") == 0 || strcmp(instr.tokens[instr.numTokens - 1], "<") == 0 || strcmp(instr.tokens[instr.numTokens - 1],">") == 0)
+		{
+			printf("Invalid Syntax\n");
+			return -1;
+		}	
+
 		
+		
+
 		//loop through all tokens
 		int i;
 		for (i =0; i < instr.numTokens; ++i)
 		{
 			if (isPath(instr.tokens[i]))
 				instr.tokens[i] = expandPath(instr.tokens[i]);
+			
 			printf("%s ", instr.tokens[i]);
+
+	
 		}
 		printf("\n");
+
+		//checking for I/O Redirection
+		int j;
+		for(j = 0; j < instr.numTokens; ++j)
+		{
+			if(strcmp(instr.tokens[j], "<") == 0)
+			{
+				char* command = instr.tokens[j - 1];
+				char* file = instr.tokens[j + 1]; 
+				iRedirection(command, file);
+			}
+			if(strcmp(instr.tokens[j], ">") == 0)
+			{
+				char* command = instr.tokens[j-1];
+				char* file = instr.tokens[j+1];
+				oRedirection(command, file);
+			}
+				
+			
+		}
+		
+
+		//checking for Piping
+		
+
+		//execution
+		//execute(instr);
+		
 		
 		addNull(&instr);
 		clearInstruction(&instr);
@@ -161,6 +216,7 @@ int isPath(char* token)
 	}
 	return FALSE;
 }
+
 
 char* expandPath(char* path)
 {
@@ -301,4 +357,62 @@ char* resolvePath(char* path)
 	
 	//not found
 	return NULL;
+}
+
+void execute(char** cmd)
+{
+int status;
+pid_t pid = fork();
+if(pid == -1)
+{
+//error
+exit(1);
+}
+else if(pid == 0)
+{
+//child
+execv(cmd[0],cmd);
+printf("Problem executing %s\n", cmd[0]);
+exit(1);
+}
+else
+{
+//parent
+waitpid(pid,&status, 0);
+}
+}
+
+void iRedirection(char* command, char* file)
+{
+printf("Found <\n");
+/*	if(fork() == 0)
+	{
+		open(file, O_RDONLY);
+		close(0);
+		dup(3);
+		close(3);
+		execute(command);
+		exit(1);
+	}
+	else
+		close(3);*/
+return;
+}
+
+void oRedirection(char* command, char* file)
+{
+printf("Found >\n");
+/*	if(fork() == 0)
+	{
+		open(file, O_RDWR | O_CREAT | O_TRUNC);
+		close(1);
+		dup(3);
+		close(3);
+		execute(command);
+		exit(1);
+	}
+
+	else
+		close(3);*/
+return;
 }
