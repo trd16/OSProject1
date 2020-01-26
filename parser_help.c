@@ -47,6 +47,14 @@ void iRedirection(char* command, char* file);
 void oRedirection(char* command, char* file);
 void pipeImplementation(char* command1, char* command2);
 
+void builtIns(instruction* instr);		//checks user input
+char * checkEnv(char * tkn);
+void echoToks(char** toks,int numToks);
+
+//globals
+pid_t child_pids[1000], f;      //child_pids[child_nb++] = f;   //use after forking where f = fork()
+int child_nb=0;
+
 int main() {
 	char* token = NULL;
 	char* temp = NULL;
@@ -166,9 +174,12 @@ int main() {
 		printf("\n");
 
 		
+		
 		//execution
 		execute(instr.tokens);
 
+		//built ins
+		builtIns(&instr);
 
 		addNull(&instr);
 		clearInstruction(&instr);
@@ -390,6 +401,7 @@ void execute(char** cmd)
 	else
 	{
 		//parent
+		child_pids[child_nb++] = pid;
 		waitpid(pid,&status, 0);
 	}
 }
@@ -465,4 +477,87 @@ void pipeImplementation(char* command1, char* command2)
 		close(fd[1]);
 	}
 	*/
+}
+
+
+void builtIns(instruction* instr)
+{
+	char **toks = instr->tokens;
+
+	int numToks = instr->numTokens;
+
+
+	if(numToks-1 > 0)
+	{
+		if(strcmp(toks[0],"echo") == 0)
+        {	
+            echoToks(toks,numToks);
+        }
+		else if(strcmp(toks[0],"cd") == 0)	
+		{			
+            char buffer[200];
+
+            //if no specified directory
+			if(toks[1] == NULL)
+            {
+				if(chdir(getenv("HOME")) == 0)
+                    setenv("PWD",getcwd(buffer, sizeof buffer),1);
+            }
+			else
+            {
+				if(chdir(toks[1]) == 0)
+                    setenv("PWD",getcwd(buffer, sizeof buffer),1);
+            }
+		}
+		else if(strcmp(toks[0],"jobs") == 0)
+		{
+            for(int i = 0;i < child_nb;i++)
+            {
+                printf("%d    %d    %d\n",i,child_pids[i],child_pids[i]);
+            }
+			
+		}
+		else if(strcmp(toks[0],"exit") == 0)
+		{
+            int status;
+            waitpid(-1,&status,0);
+
+
+
+			clearInstruction(&(*instr));
+			exit(0);
+		}
+		else
+		{
+            execute(toks);
+			//printf("%s: Command not found\n",toks[0]);
+		}
+		
+	}
+}
+
+
+//if env variable, remove '$' and make everything uppercase
+char * checkEnv(char * tkn)     
+{
+	memmove(tkn, tkn+1, strlen (tkn+1) + 1);
+	for(int i = 0;i < strlen(tkn);i++)
+		toupper(tkn[i]);
+	return tkn;
+}
+
+//echo function
+void echoToks(char** toks,int numToks)
+{
+			for(int i = 1;i < numToks; i++)		//loops thru all input
+			{				
+				if(toks[i][0] == '$')
+                {
+                    checkEnv(toks[i]);
+					printf("%s ",getenv(toks[i]));
+                }
+				else
+					printf("%s ",toks[i]);
+			}
+			printf("\n");
 }
