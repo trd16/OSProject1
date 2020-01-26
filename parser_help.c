@@ -35,7 +35,7 @@
 typedef struct
 {
 	char** tokens;
-	int numTokens;
+	int numTokens, input, output;
 } instruction;
 
 void addToken(instruction* instr_ptr, char* tok);
@@ -136,8 +136,8 @@ int main() {
 		}
 
 		//loop through all tokens to find errors
-		int i, iredir = FALSE, oredir, pipes = 0, background = FALSE;
-		for (i = 0; i < instr.numTokens; ++i)
+		int iredir = FALSE, oredir, pipes = 0, background = FALSE;
+		for (int i = 0; i < instr.numTokens; ++i)
 		{
 			if (isBuiltIn(instr.tokens[i]))
 			{
@@ -207,16 +207,23 @@ int main() {
 			{
 				if(strcmp(instr.tokens[j], "<") == 0)
 				{
-					char* command = instr.tokens[j - 1];
-					char* file = instr.tokens[j + 1]; 
-					iRedirection(command, file);
+					instr.input = j + 1; 
 				}
 				if(strcmp(instr.tokens[j], ">") == 0)
 				{
-					char* command = instr.tokens[j-1];
-					char* file = instr.tokens[j+1];
-					oRedirection(command, file);
+					instr.output = j + 1;
 				}
+				
+				if (instr.input != -1 && instr.output != -1)
+					break;
+			}
+			
+			//invalid syntax CMD > & FILE and CMD > & FILE
+			if (instr.input != -1 && strcmp(instr.tokens[instr.input], "&") == 0
+			|| instr.output != -1 && strcmp(instr.tokens[instr.output], "&") == 0)
+			{
+				printf("Invalid syntax\n");
+				continue;
 			}
 		}
 		else if (pipes)
@@ -282,6 +289,8 @@ void clearInstruction(instruction* instr_ptr)
 
 	instr_ptr->tokens = NULL;
 	instr_ptr->numTokens = 0;
+	instr_ptr->input = -1;
+	instr_ptr->output = -1;
 }
 
 int isPath(char* token)
@@ -472,40 +481,6 @@ void execute(char** cmd)
 	}
 }
 
-void iRedirection(char* command, char* file)
-{
-	printf("Found <\n");
-	/*	if(fork() == 0)
-		{
-		open(file, O_RDONLY);
-		close(0);
-		dup(3);
-		close(3);
-		execute(command);
-		exit(1);
-		}
-		else
-		close(3);*/
-	return;
-}
-
-void oRedirection(char* command, char* file)
-{
-	printf("Found >\n");
-	/*	if(fork() == 0)
-		{
-		open(file, O_RDWR | O_CREAT | O_TRUNC);
-		close(1);
-		dup(3);
-		close(3);
-		execute(command);
-		exit(1);
-		}
-
-		else
-		close(3);*/
-	return;
-}
 
 void pipeImplementation(char* command1, char* command2)
 {
