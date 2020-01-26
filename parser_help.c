@@ -356,28 +356,39 @@ int isValidFile(char* path)
 
 char* resolvePath(char* path)
 {
+	//absolute path
 	if (path[0] == '/')
-		return path;
-
+	{
+		if (isValidFile(path))
+			return path;
+		return NULL;
+	}
+	
+	//test for ./path first
+	char* newPath = (char*)malloc(256 * sizeof(char));
+	strcpy(newPath, "./");
+	strcat(newPath, path);
+	strcpy(newPath, expandPath(newPath));
+	if (isValidFile(newPath))
+		return newPath;
+	
 	char PATHenv[256];
 	strcpy(PATHenv, getenv("PATH"));
-
-	//split PATH into array
+	
+	//split PATH and test each PATH var
 	char* ptr = strtok(PATHenv, ":");
 	while (ptr != NULL)
 	{
-		int size = (int)(strlen(PATHenv) + strlen(path)) + 2;
-		char* newPath = (char*)malloc(size * sizeof(char));
 		strcpy(newPath, ptr);
 		strcat(newPath, "/");
 		strcat(newPath, path);
-
-		if (isValidFile)
+		
+		if (isValidFile(newPath))
 			return newPath;
-		free(newPath);
-		char* ptr = strtok(NULL, ":");
+		
+		ptr = strtok(NULL, ":");
 	}
-
+	
 	//not found
 	return NULL;
 }
@@ -561,3 +572,4 @@ void echoToks(char** toks,int numToks)
 			}
 			printf("\n");
 }
+
