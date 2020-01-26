@@ -56,9 +56,9 @@ int main() {
 
 	while (1) {
 		printf("%s",getenv("USER"));
-        printf("@");
-        printf("%s",getenv("MACHINE"));
-        printf(":%s>",getenv("PWD"));
+		printf("@");
+		printf("%s",getenv("MACHINE"));
+		printf(":%s>",getenv("PWD"));
 
 		// loop reads character sequences separated by whitespace
 		do {
@@ -114,8 +114,8 @@ int main() {
 			return -1;
 		}	
 
-		
-		
+
+
 
 		//loop through all tokens
 		int i;
@@ -123,10 +123,10 @@ int main() {
 		{
 			if (isPath(instr.tokens[i]))
 				instr.tokens[i] = expandPath(instr.tokens[i]);
-			
+
 			printf("%s ", instr.tokens[i]);
 
-	
+
 		}
 		printf("\n");
 
@@ -146,18 +146,18 @@ int main() {
 				char* file = instr.tokens[j+1];
 				oRedirection(command, file);
 			}
-				
-			
+
+
 		}
-		
+
 
 		//checking for Piping
-		
+
 
 		//execution
 		//execute(instr);
-		
-		
+
+
 		addNull(&instr);
 		clearInstruction(&instr);
 	}
@@ -221,7 +221,7 @@ int isPath(char* token)
 char* expandPath(char* path)
 {
 	char* newPath;
-	
+
 	//set ~ to home directory
 	if (path[0] == '~')
 	{
@@ -229,7 +229,7 @@ char* expandPath(char* path)
 		int len = strlen(newPath) + strlen(getenv("HOME"));
 		newPath = (char*)malloc((len) * sizeof(char));
 		strcpy(newPath, getenv("HOME"));
-		
+
 		//add the path after '~' to the end of HOME
 		int i, j = strlen(newPath);
 		for (i = 1; i < strlen(path); ++i)
@@ -251,17 +251,17 @@ char* expandPath(char* path)
 		newPath = (char*)malloc((strlen(path) + 1) * sizeof(char));
 		strcpy(newPath, path);
 	}
-	
+
 	//return newPath if no further directories to expand. ie at root
 	int numDirs = numberOfDirs(newPath);
 	if (numDirs == 0)
 		return newPath;
-	
+
 	char** pathArray = (char**)malloc(numDirs * sizeof(char*));
 	int i, j;
 	for (i = 0; i < numDirs; ++i)
 		pathArray[i] = (char*)malloc(strlen(newPath) * sizeof(char*));
-	
+
 	i = 0;
 	//split path into array
 	char* ptr = strtok(newPath, "/");
@@ -277,10 +277,10 @@ char* expandPath(char* path)
 		//only add directory to array if not . or ..
 		else if (strcmp(ptr, ".") != 0)
 			strcpy(pathArray[i++], ptr);
-		
+
 		ptr = strtok(NULL, "/");
 	}
-	
+
 	//root
 	strcpy(newPath, "/");
 	for (j = 0; j < numDirs; ++j)
@@ -295,7 +295,7 @@ char* expandPath(char* path)
 		free(pathArray[j]);
 	}
 	free(pathArray);
-	
+
 	return newPath;
 }
 
@@ -303,7 +303,7 @@ int numberOfDirs(char* path)
 {
 	if (path == NULL || strlen(path) <= 1)
 		return 0;
-	
+
 	int num = 0, i;
 	for (i = 0; i < strlen(path); ++i)
 	{
@@ -335,10 +335,10 @@ char* resolvePath(char* path)
 {
 	if (path[0] == '/')
 		return path;
-	
+
 	char PATHenv[256];
 	strcpy(PATHenv, getenv("PATH"));
-	
+
 	//split PATH into array
 	char* ptr = strtok(PATHenv, ":");
 	while (ptr != NULL)
@@ -348,71 +348,71 @@ char* resolvePath(char* path)
 		strcpy(newPath, ptr);
 		strcat(newPath, "/");
 		strcat(newPath, path);
-		
+
 		if (isValidFile)
 			return newPath;
 		free(newPath);
 		char* ptr = strtok(NULL, ":");
 	}
-	
+
 	//not found
 	return NULL;
 }
 
 void execute(char** cmd)
 {
-int status;
-pid_t pid = fork();
-if(pid == -1)
-{
-//error
-exit(1);
-}
-else if(pid == 0)
-{
-//child
-execv(cmd[0],cmd);
-printf("Problem executing %s\n", cmd[0]);
-exit(1);
-}
-else
-{
-//parent
-waitpid(pid,&status, 0);
-}
+	int status;
+	pid_t pid = fork();
+	if(pid == -1)
+	{
+		//error
+		exit(1);
+	}
+	else if(pid == 0)
+	{
+		//child
+		execv(cmd[0],cmd);
+		printf("Problem executing %s\n", cmd[0]);
+		exit(1);
+	}
+	else
+	{
+		//parent
+		waitpid(pid,&status, 0);
+	}
 }
 
 void iRedirection(char* command, char* file)
 {
-printf("Found <\n");
-/*	if(fork() == 0)
-	{
+	printf("Found <\n");
+	/*	if(fork() == 0)
+		{
 		open(file, O_RDONLY);
 		close(0);
 		dup(3);
 		close(3);
 		execute(command);
 		exit(1);
-	}
-	else
+		}
+		else
 		close(3);*/
-return;
+	return;
 }
 
 void oRedirection(char* command, char* file)
 {
-printf("Found >\n");
-/*	if(fork() == 0)
-	{
+	printf("Found >\n");
+	/*	if(fork() == 0)
+		{
 		open(file, O_RDWR | O_CREAT | O_TRUNC);
 		close(1);
 		dup(3);
 		close(3);
 		execute(command);
 		exit(1);
-	}
+		}
 
-	else
+		else
 		close(3);*/
-return;
+	return;
 }
