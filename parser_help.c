@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include <dirent.h>
 #include <errno.h>
@@ -240,6 +241,19 @@ int isPath(char* token)
 	return FALSE;
 }
 
+int numberOfDirs(char* path)
+{
+	if (path == NULL || strlen(path) <= 1)
+		return 0;
+
+	int num = 0, i;
+	for (i = 0; i < strlen(path); ++i)
+	{
+		if (path[i] == '/')
+			++num;
+	}
+	return num;
+}
 
 char* expandPath(char* path)
 {
@@ -322,19 +336,6 @@ char* expandPath(char* path)
 	return newPath;
 }
 
-int numberOfDirs(char* path)
-{
-	if (path == NULL || strlen(path) <= 1)
-		return 0;
-
-	int num = 0, i;
-	for (i = 0; i < strlen(path); ++i)
-	{
-		if (path[i] == '/')
-			++num;
-	}
-	return num;
-}
 
 int isValidDir(char* path)
 {
@@ -405,7 +406,7 @@ void execute(char** cmd)
 	else if(pid == 0)
 	{
 		//child
-		execv(cmd[0],cmd);
+		execvp(cmd[0],cmd);
 		printf("Problem executing %s\n", cmd[0]);
 		exit(1);
 	}
