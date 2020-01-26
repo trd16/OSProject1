@@ -157,11 +157,17 @@ int main() {
 		}
 
 
-		
-		
 
+		printf("Token 1: %s", instr.tokens[0]);		
+		printf("\n");
+		printf("Token 2: %s", instr.tokens[1]);
+		printf("\n");
+		printf("Token 3: %s", instr.tokens[2]);
+		printf("\n");
+
+		
 		//execution
-		//execute(instr);
+		execute(instr.tokens);
 
 
 		addNull(&instr);
