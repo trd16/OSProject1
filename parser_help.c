@@ -52,7 +52,7 @@ char * checkEnv(char * tkn);
 void echoToks(char** toks,int numToks);
 
 //globals
-pid_t child_pids[1000], f;      //child_pids[child_nb++] = f;   //use after forking where f = fork()
+pid_t child_pids[1000], pid;      //child_pids[child_nb++] = f;   //use after forking where f = fork()
 int child_nb=0;
 
 int main() {
