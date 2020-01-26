@@ -45,6 +45,7 @@ int isValidFile(char* path);
 void execute(char** cmd);
 void iRedirection(char* command, char* file);
 void oRedirection(char* command, char* file);
+void pipeImplementation(char* command1, char* command2);
 
 int main() {
 	char* token = NULL;
@@ -130,7 +131,7 @@ int main() {
 		}
 		printf("\n");
 
-		//checking for I/O Redirection
+		//checking for I/O Redirection & Piping
 		int j;
 		for(j = 0; j < instr.numTokens; ++j)
 		{
@@ -146,13 +147,18 @@ int main() {
 				char* file = instr.tokens[j+1];
 				oRedirection(command, file);
 			}
-
+			if(strcmp(instr.tokens[j],"|") == 0)
+			{
+				char* command1 = instr.tokens[j-1];
+				char* command2 = instr.tokens[j+1];
+				pipeImplementation(command1, command2);
+			}
 
 		}
 
 
-		//checking for Piping
-
+		
+		
 
 		//execution
 		//execute(instr);
@@ -415,4 +421,42 @@ void oRedirection(char* command, char* file)
 		else
 		close(3);*/
 	return;
+}
+
+void pipeImplementation(char* command1, char* command2)
+{
+	printf("Found |\n");
+	/*
+	int fd[2];
+	if(fork() == 0)
+	{
+		pipe(fd);
+		if(fork() == 0)
+		{
+			//cmd1 writer
+			close(STDOUT_FILENO);
+			dup(fd[1]);
+			close(fd[0]);
+			close(fd[1]);
+			//execute command
+			exit(1);
+		}
+		else
+		{
+			//cmd2 reader
+			close(STDIN_FILENO);
+			dup(fd[0]);
+			close(fd[0]);
+			close(fd[1]);
+			//execute command
+			exit(1);
+		}
+	}
+	else
+	{
+		//parent shell
+		close(fd[0]);
+		close(fd[1]);
+	}
+	*/
 }
