@@ -2,9 +2,9 @@
 __________________________________________________________________
 Contributions
 -------------
-Scott: 
-Thomas: 
-Taylor: 
+Scott: Built-Ins, Background Processing
+Thomas: Parsing, Shortcut Resolution, Path Resolution
+Taylor: Execution, I/O Redirection, Piping
 
 Tar-Archive Contents
 --------------------
