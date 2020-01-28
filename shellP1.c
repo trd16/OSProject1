@@ -501,7 +501,7 @@ void iRedirection(char** command, int location)
 
 void oRedirection(char** command, int location)
 {
-	printf("Fount >\n");
+	printf("Found >\n");
 	if(fork() == 0)
 	{
 		open(command[location+1], O_RDWR | O_CREAT | O_TRUNC);
@@ -518,6 +518,52 @@ void oRedirection(char** command, int location)
 	return;
 	
 }
+
+void bothRedirection(char** command, int ilocation, int olocation)
+{
+	printf("Found > & <\n");
+
+	if(ilocation < olocation)
+	{
+		//do iredirection first
+		iRedirection(command, ilocation);
+		//do oredirection with command[0]
+		if(fork() == 0)
+		{
+			open(command[olocation+1], O_RDWR | O_CREAT | O_TRUNC);
+			close(1);
+			dup(3);
+			close(3);
+			execute(command[0]);
+			exit(1);
+		}
+		else
+			close(3);
+		
+	}
+	
+	if(olocation < ilocation)
+	{
+		//do oredirection first
+		oRedirection(command, olocation);
+		//do iredirection with command[0]
+		if(fork() == 0)
+		{
+			open(command[ilocation+1], O_RDONLY);
+			close(0);
+			dup(3);
+			close(3);
+			execute(command[0]);
+			exit(1);
+		}
+		else
+			close(3);
+		return;
+	}
+	
+}
+
+
 
 
 void pipeImplementation(char* command1, char* command2)
