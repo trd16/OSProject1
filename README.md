@@ -27,7 +27,7 @@ How We Compile Our Executables Using Makefile
 
 Known Bugs
 -----------
-
+-After runnning ls twice, it starts throwing an error
 
 Unfinished Portions of the Project
 ------------------------------------
