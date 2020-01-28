@@ -10,9 +10,11 @@ Taylor: Execution, I/O Redirection, Piping
 
 Tar-Archive Contents
 --------------------
-shellp1.c:
+shellp1.c
 
-makefile:
+makefile
+
+README.md
 
 How We Compile Our Executables Using Makefile
 ---------------------------------------------
