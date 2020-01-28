@@ -9,6 +9,10 @@ Thomas: Parsing, Shortcut Resolution, Path Resolution
 
 Taylor: Execution, I/O Redirection, Piping
 
+Git Log
+------------
+
+
 Tar-Archive Contents
 --------------------
 shellp1.c
