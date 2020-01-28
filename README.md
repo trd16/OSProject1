@@ -31,3 +31,4 @@ Unfinished Portions of the Project
 
 Special Considerations
 ------------------------
+There are no special considerations for our project.
