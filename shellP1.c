@@ -50,8 +50,8 @@ int isValidDir(char* path);
 int isValidFile(char* path);
 
 void execute(char** cmd);
-void iRedirection(char* command, char* file);
-void oRedirection(char* command, char* file);
+void iRedirection(char** command, int location);
+void oRedirection(char** command, int location);
 void pipeImplementation(char* command1, char* command2);
 
 int isBuiltIn(char* token);
@@ -479,6 +479,44 @@ void execute(char** cmd)
 		child_pids[child_nb++] = pid;
 		waitpid(pid,&status, 0);
 	}
+}
+
+void iRedirection(char** command, int location)
+{
+	printf("Found <\n");
+	if(fork() == 0)
+	{
+		open(command[location+1], O_RDONLY);
+		close(0);
+		dup(3);
+		close(3);
+		execute(command);
+		exit(1);
+	}
+	else
+		close(3);
+	
+	return;
+}
+
+void oRedirection(char** command, int location)
+{
+	printf("Fount >\n");
+	if(fork() == 0)
+	{
+		open(command[location+1], O_RDWR | O_CREAT | O_TRUNC);
+		close(1);
+		dup(3);
+		close(3);
+		execute(command);
+		exit(1);
+		
+	}
+	else
+		close(3);
+	
+	return;
+	
 }
 
 
