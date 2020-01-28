@@ -1,4 +1,4 @@
-# OSProject1
+# COP4610: Operating Systems: Project 1
 "The purpose of this project is to familiarize you with the mechanics of process control through the implementation of a shell user interface. This includes the relationship between child and parent processes, the steps needed to create a new process, including search of the path, and an introduction to user-input parsing and verification. Furthermore,you will come to understand how input/output redirection, pipes, and background processes are implemented."
 
 https://github.com/trd16/OSProject1
