@@ -26,7 +26,8 @@ README.md
 
 How We Compile Our Executables Using Makefile
 ---------------------------------------------
-
+1. Type make.
+2. Run executable shell.
 
 Known Bugs
 -----------
