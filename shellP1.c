@@ -390,13 +390,13 @@ int main() {
 							break;
 					}
 				}
-				else
-				{
-					if (isBuiltIn(tempInstr.tokens[0]))
-					builtIns(&tempInstr);
+				else if (isBuiltIn(tempInstr.tokens[0]))
+					builtIns(&tempInstr);	
+				else if(background)
+					backgroundProc(tempInstr.tokens,tempInstr.numTokens);
 				else
 					execute(tempInstr.tokens);
-				}
+				
 			}
 			
 			clearInstruction(&tempInstr);
