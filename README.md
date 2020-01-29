@@ -32,10 +32,12 @@ How We Compile Our Executables Using Makefile
 Known Bugs
 -----------
 -After using the input operator, occasionally the compiler gets stuck and you have to ctrl c out of it.
+-After using one pipe command, the shell breaks and you have to exit and restart.
+-The background processing for I/O Redirection does not inform you when it has finished.
 
 Unfinished Portions of the Project
 ------------------------------------
-
+-Jobs code is written but it is not outputting to the screen as it should be.
 
 Special Considerations
 ------------------------
