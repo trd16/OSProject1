@@ -370,7 +370,7 @@ int main() {
 							{
 								//child
 								setpgid(0, 0);
-								open(instr.tokens[instr.output], O_RDONLY);
+								open(instr.tokens[instr.input], O_RDONLY);
 								close(0);
 								dup(3);
 								close(3);
