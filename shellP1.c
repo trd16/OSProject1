@@ -38,6 +38,12 @@ typedef struct
 	int numTokens, input, output;
 } instruction;
 
+typedef struct 
+{
+	pid_t pid;
+	char name[100][100];
+} queue;
+
 void addToken(instruction* instr_ptr, char* tok);
 void clearInstruction(instruction* instr_ptr);
 void addNull(instruction* instr_ptr);
@@ -58,10 +64,17 @@ int isBuiltIn(char* token);
 void builtIns(instruction* instr);		//checks user input
 char * checkEnv(char * tkn);
 void echoToks(char** toks,int numToks);
+void jobs(instruction* instr);
+
+void insertQueue(pid_t pid,char **cmds, int numCmds);
+void deleteJob(pid_t pid);
+void backgroundProc(char ** cmd, int numToks);
+void checkBg();
 
 //globals
-pid_t child_pids[1000], pid;      //child_pids[child_nb++] = f;   //use after forking where f = fork()
-int child_nb=0;
+pid_t pid;
+int child_nb = 0, numCommands = 0;
+queue q[100];
 
 int main() {
 	char* token = NULL;
@@ -72,6 +85,9 @@ int main() {
 	instr.numTokens = 0;
 
 	while (1) {
+
+		checkBg();
+
 		printf("%s",getenv("USER"));
 		printf("@");
 		printf("%s",getenv("MACHINE"));
@@ -174,7 +190,7 @@ int main() {
 				}
 			}
 			//background processing
-			else if (strcmp(instr.tokens[i], "&"))
+			else if (strcmp(instr.tokens[i], "&") == 0)
 			{
 				background = TRUE;
 			}
@@ -239,6 +255,8 @@ int main() {
 				}
 			}
 		}
+		else if(background)
+			backgroundProc(instr.tokens,instr.numTokens);
 		//normal execution
 		else 
 			execute(instr.tokens);
@@ -488,7 +506,6 @@ void execute(char** cmd)
 	else
 	{
 		//parent
-		child_pids[child_nb++] = pid;
 		waitpid(pid,&status, 0);
 	}
 }
@@ -655,11 +672,7 @@ void builtIns(instruction* instr)
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
-            for(int i = 0;i < child_nb;i++)
-            {
-                printf("%d    %d    %d\n",i,child_pids[i],child_pids[i]);
-            }
-			
+            jobs(instr);
 		}
 		else if(strcmp(toks[0],"exit") == 0)
 		{
@@ -706,3 +719,115 @@ void echoToks(char** toks,int numToks)
 			printf("\n");
 }
 
+
+
+void backgroundProc(char ** cmd, int numToks)
+{	
+
+if(strcmp(cmd[0],"ok") != 0){
+
+	cmd[numToks-1] = NULL;
+	int numCmds = numToks-1;
+	
+	int status;
+	pid_t pid = fork();
+	if(pid == -1)
+	{
+		//error
+		exit(1);
+	}
+	else if(pid == 0)
+	{
+		//child
+		setpgid(0, 0);
+		//sleep(3);
+		execvp(cmd[0],cmd);
+		printf("Problem executing(in BG) %s\n", cmd[0]);
+		exit(1);
+	}
+	else
+	{
+		//parent
+		insertQueue(pid,cmd,numCmds);
+		printf("\n[%d]	[%d]\n",child_nb-1,pid);
+
+		waitpid(pid,&status,WNOHANG);
+	}
+}
+
+}
+
+
+
+void jobs(instruction* instr)
+{
+	int j = 0;
+	for(int i = 1;i < child_nb;i++)
+	{
+		printf("[%d]    [%d]    [ \n",i,q[i].pid);
+		while(strcmp(q[i].name[j],NULL) != 0)
+		{
+			printf("%s ",q[i].name[j]);
+			j++;
+		}
+		printf("]\n");
+	}
+}
+
+void insertQueue(pid_t pid,char **cmds, int numCmds)
+{
+	q[child_nb].pid = pid;
+
+    int i = 0;
+
+    while(i < numCmds)
+    {
+		strcpy(q[child_nb].name[i],cmds[i]);				//copying the commands into queue
+		i++;
+    }
+    strcpy(q[child_nb].name[i],"&");
+	child_nb++;
+
+}
+
+
+void deleteJob(pid_t pid)
+{
+     int i = 0,j;
+     for(i = 0;i< child_nb ; i++)
+	 {
+		if(q[i].pid == pid)						//finding the particular pid element
+	       break;
+	 }
+     for(j = i + 1;j <= child_nb; j++)
+		q[j-1]=q[j];							//shifting the whole queue by one step backward
+
+     child_nb--;
+}
+
+
+void checkBg()
+{
+	int status;		//for waitpid
+
+	for(int i = 0, j = 0; i < child_nb; i++)	//loop to check for finished background processes
+	{
+		int cPid = waitpid(q[i].pid,&status,WNOHANG);
+		if(cPid != 0)
+		{
+			printf("[%d]+	[",i);
+			//printf("\n%s\n",q[i].name[0]);
+
+			while(strcmp(q[i].name[j], "&") != 0)
+			{
+				printf("%s ",q[i].name[j]);
+				j++;
+			}
+			printf("%s",q[i].name[j]);
+			printf("]\n");
+
+			deleteJob(q[i].pid);
+		}
+	}
+
+}
