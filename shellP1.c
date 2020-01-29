@@ -771,6 +771,8 @@ void pipeImplementation(char* command1, char* command2)
 		//parent shell
 		close(fd[0]);
 		close(fd[1]);
+		waitpid(pid1, NULL, 0);
+		waitpid(pid2, NULL, 0);
 	}
 	*/
 }
