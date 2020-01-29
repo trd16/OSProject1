@@ -55,6 +55,7 @@ char* expandPath(char* path);
 char* resolvePath(char* path);
 int isValidDir(char* path);
 int isValidFile(char* path);
+int isExecutable(char* path);
 
 void execute(char** cmd);
 void iRedirection(char** command, int location);
@@ -73,8 +74,9 @@ void backgroundProc(char ** cmd, int numToks);
 void checkBg();
 
 //globals
-pid_t pid;
-int child_nb = 0, numCommands = 0;
+//globals
+pid_t child_pids[1000], pid, pid1, pid2, pid3;  
+int child_nb = 0,  typed = 0;
 queue q[100];
 
 int main() {
@@ -89,6 +91,7 @@ int main() {
 	instr.cmd1 = -1;
 	instr.cmd2 = -1;
 	instr.cmd3 = -1;
+	int numCommands = 0,
 
 	while (1) {
 		printf("%s",getenv("USER"));
@@ -136,6 +139,8 @@ int main() {
 			token = NULL;
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
+
+		++typed;
 
 		//checking for I/O Errors, Piping Errors at beginning of input
 		if(strcmp(instr.tokens[0],"|") == 0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
@@ -270,6 +275,9 @@ int main() {
 			error = TRUE;
 		}
 
+		if (strcmp(instr.tokens[instr.numTokens - 1], "&") == 0)
+			background = TRUE;
+
 		if (!error)
 		{	
 			//split instr into temp instructions with only the command
@@ -277,9 +285,13 @@ int main() {
 			tempInstr.numTokens = 0;
 			tempInstr.tokens = NULL;
 			
-			printf("%d\n", instr.cmd1);
-			printf("%d\n", instr.cmd2);
-			printf("%d\n", instr.cmd3);
+			instruction tempInstr2;
+			tempInstr2.numTokens = 0;
+			tempInstr2.tokens = NULL;
+			
+			instruction tempInstr3;
+			tempInstr3.numTokens = 0;
+			tempInstr3.tokens = NULL;
 			
 			int i;
 			for (i = instr.cmd1; i < instr.numTokens; ++i)
@@ -296,7 +308,7 @@ int main() {
 						if (!isExecutable(temp))
 						{
 							error = TRUE;
-							printf("%s: Command not foun-d.\n", instr.tokens[i]);
+							printf("%s: Command not found.\n", instr.tokens[i]);
 							break;
 						}
 						addToken(&tempInstr, instr.tokens[i]);
@@ -308,8 +320,19 @@ int main() {
 					|| strcmp(instr.tokens[i], "&") == 0 || strcmp(instr.tokens[i], "|") == 0)
 						break;
 					
-					if (instr.tokens[i][0] == '-' || instr.tokens[i][0] == '$')
+					if (instr.tokens[i][0] == '-')
 						addToken(&tempInstr, instr.tokens[i]);
+					else if (instr.tokens[i][0] == '$')
+					{
+						char* temp = getenv(checkEnv(instr.tokens[i]));
+						if (temp == NULL)
+						{
+							error = TRUE;
+							printf("%s: Undefined variable.\n");
+							break;
+						}
+						addToken(&tempInstr, temp);
+					}
 					
 					//files and directories
 					else 
@@ -322,26 +345,31 @@ int main() {
 			//execute
 			if (!error)
 			{
+				// if (iredir && oredir)
+				// {
+					
+				// }
+				
 				if (iredir)
 				{
 					if(fork() == 0)
 					{
-						//here
-						open(instr.tokens[instr.output], O_RDONLY);
+						int fd = open(instr.tokens[instr.input], O_RDONLY);
 						close(0);
 						dup(3);
 						close(3);
 						
+						dup2(fd, 0);
 						if (isBuiltIn(tempInstr.tokens[0]))
 							builtIns(&tempInstr);
 						else
 							execute(tempInstr.tokens);
 						
 						exit(1);
-						//to here
 					}
 					else
 						close(3);
+					continue;
 				}
 				else if (oredir)
 				{
@@ -381,25 +409,243 @@ int main() {
 					else
 						close(3);
 				}
-				//io redir
+				
 				else if (pipes)
 				{
+					//extract cmd2
 					for (i = instr.cmd2; i < instr.numTokens; ++i)
 					{
 						if (instr.tokens[i][0] == '|' || instr.tokens[i][0] == '&')
 							break;
+						
+						if (i == instr.cmd2)
+						{
+							if (isBuiltIn(instr.tokens[i]))
+							{
+								addToken(&tempInstr2, instr.tokens[i]);
+							}
+							else 
+							{
+								char* temp = resolvePath(instr.tokens[i]);
+								if (!isExecutable(temp))
+								{
+									error = TRUE;
+									printf("%s: Command not foun-d.\n", instr.tokens[i]);
+									break;
+								}
+								addToken(&tempInstr2, instr.tokens[i]);
+							}
+						}
+						else
+						{
+							if (instr.tokens[i][0] == '-')
+								addToken(&tempInstr2, instr.tokens[i]);
+							else if (instr.tokens[i][0] == '$')
+							{
+								char* temp = getenv(checkEnv(instr.tokens[i]));
+								if (temp == NULL)
+								{
+									error = TRUE;
+									printf("%s: Undefined variable.\n");
+									break;
+								}
+								addToken(&tempInstr2, temp);
+							}
+							
+							//files and directories
+							else 
+								addToken(&tempInstr2, expandPath(instr.tokens[i]));
+						}
+					}
+					addNull(&tempInstr2);
+					
+					if (pipes == 2)
+					{
+						//extract cmd2
+						for (i = instr.cmd2; i < instr.numTokens; ++i)
+						{
+							if (instr.tokens[i][0] == '|' || instr.tokens[i][0] == '&')
+								break;
+							
+							if (i == instr.cmd2)
+							{
+								if (isBuiltIn(instr.tokens[i]))
+								{
+									addToken(&tempInstr3, instr.tokens[i]);
+								}
+								else 
+								{
+									char* temp = resolvePath(instr.tokens[i]);
+									if (!isExecutable(temp))
+									{
+										error = TRUE;
+										printf("%s: Command not foun-d.\n", instr.tokens[i]);
+										break;
+									}
+									addToken(&tempInstr3, instr.tokens[i]);
+								}
+							}
+							else
+							{
+								if (instr.tokens[i][0] == '-')
+									addToken(&tempInstr3, instr.tokens[i]);
+								else if (instr.tokens[i][0] == '$')
+								{
+									char* temp = getenv(checkEnv(instr.tokens[i]));
+									if (temp == NULL)
+									{
+										error = TRUE;
+										printf("%s: Undefined variable.\n");
+										break;
+									}
+									addToken(&tempInstr3, temp);
+								}
+								
+								//files and directories
+								else 
+									addToken(&tempInstr3, expandPath(instr.tokens[i]));
+							}
+						}
+						addNull(&tempInstr3);
+						
+						//execute cmd2
+						
+						int status2;
+						int fd2[3];
+						if(fork() == 0)
+						{
+							pipe(fd2);
+							if(fork() == 0)
+							{
+								if(fork() == 0)
+								{
+									//cmd1 writer
+									close(1);
+									dup(fd2[1]);
+									close(fd2[0]);
+									close(fd2[1]);
+									//execute cmd1
+									if (isBuiltIn(tempInstr.tokens[0]))
+										builtIns(&tempInstr);
+									else
+										execute(tempInstr.tokens);
+								}
+								else
+								{
+									//cmd2 reader
+									close(0);
+									dup(fd2[0]);
+									close(fd2[0]);
+									close(fd2[1]);
+									//execute
+									
+									//cmd2 writer
+									close(2);
+									dup(fd2[2]);
+									close(fd2[1]);
+									close(fd2[2]);
+									//execute
+									
+									if (isBuiltIn(tempInstr3.tokens[0]))
+										builtIns(&tempInstr2);
+									else
+										execute(tempInstr2.tokens);
+								}
+							}
+							else
+							{
+								//cmd3 reader
+								close(1);
+								dup(fd2[1]);
+								close(fd2[1]);
+								close(fd2[2]);
+								//execute
+								if (isBuiltIn(tempInstr3.tokens[0]))
+									builtIns(&tempInstr3);
+								else
+									execute(tempInstr3.tokens);
+							}
+						}
+						else
+						{
+							//parent
+							close(fd2[0]);
+							close(fd2[1]);
+							close(fd2[2]);
+							waitpid(pid1, &status2,0);
+							waitpid(pid2, &status2, 0);
+							waitpid(pid3,&status2, 0);
+						}
+					}
+					
+					//1 pipe
+					else
+					{
+						int status;
+						int fd[2];
+						if(fork() == 0)
+						{
+							pipe(fd);
+							//child
+							if(fork() == 0)
+							{
+								//cmd1 writer
+								close(STDOUT_FILENO);
+								dup(fd[1]);
+								close(fd[0]);
+								close(fd[1]);
+								
+								//execute command
+								if (isBuiltIn(tempInstr.tokens[0]))
+									builtIns(&tempInstr);
+								else
+									execute(tempInstr.tokens);
+								
+								// exit(1);
+							}
+							//parent
+							else
+							{
+								//cmd2 reader
+								close(STDIN_FILENO);
+								dup(fd[0]);
+								close(fd[0]);
+								close(fd[1]);
+								
+								//execute command
+								if (isBuiltIn(tempInstr2.tokens[0]))
+									builtIns(&tempInstr2);
+								else
+									execute(tempInstr2.tokens);
+								
+								// exit(1);
+							}
+							
+						}
+						else
+						{
+							//parent shell
+							close(fd[0]);
+							close(fd[1]);
+							waitpid(pid1, &status, 0);
+							waitpid(pid2, &status, 0);
+						}
 					}
 				}
-				else if (isBuiltIn(tempInstr.tokens[0]))
-					builtIns(&tempInstr);	
-				else if(background)
-					backgroundProc(tempInstr.tokens,tempInstr.numTokens);
-				else
-					execute(tempInstr.tokens);
 				
+				//no piping or redirection normal execution
+				else
+				{
+					if (isBuiltIn(tempInstr.tokens[0]))
+						builtIns(&tempInstr);
+					else
+						execute(tempInstr.tokens);
+				}
 			}
 			
 			clearInstruction(&tempInstr);
+			clearInstruction(&tempInstr2);
+			clearInstruction(&tempInstr3);
 		}
 		
 
@@ -645,148 +891,46 @@ void execute(char** cmd)
 	else if(pid == 0)
 	{
 		//child
-		execvp(cmd[0],cmd);
+		execv(resolvePath(cmd[0]), cmd);
 		printf("Problem executing %s\n", cmd[0]);
 		exit(1);
 	}
 	else
 	{
 		//parent
+		child_pids[child_nb++] = pid;
 		waitpid(pid,&status, 0);
 	}
 }
-
-void iRedirection(char** command, int location)
-{
-	printf("Found <\n");
-	if(fork() == 0)
-	{
-		open(command[location+1], O_RDONLY);
-		close(0);
-		dup(3);
-		close(3);
-		execute(command);
-		exit(1);
-	}
-	else
-		close(3);
-	
-	return;
-}
-
-void oRedirection(char** command, int location)
-{
-	printf("Found >\n");
-	if(fork() == 0)
-	{
-		open(command[location+1], O_RDWR | O_CREAT | O_TRUNC);
-		close(1);
-		dup(3);
-		close(3);
-		execute(command);
-		exit(1);
-		
-	}
-	else
-		close(3);
-	
-	return;
-	
-}
-
-void bothRedirection(char** command, int ilocation, int olocation)
-{
-	printf("Found > & <\n");
-
-	if(ilocation < olocation)
-	{
-		//do iredirection first
-		iRedirection(command, ilocation);
-		//do oredirection with command[0]
-		if(fork() == 0)
-		{
-			open(command[olocation+1], O_RDWR | O_CREAT | O_TRUNC);
-			close(1);
-			dup(3);
-			close(3);
-			execute(command[0]);
-			exit(1);
-		}
-		else
-			close(3);
-		
-	}
-	
-	if(olocation < ilocation)
-	{
-		//do oredirection first
-		oRedirection(command, olocation);
-		//do iredirection with command[0]
-		if(fork() == 0)
-		{
-			open(command[ilocation+1], O_RDONLY);
-			close(0);
-			dup(3);
-			close(3);
-			execute(command[0]);
-			exit(1);
-		}
-		else
-			close(3);
-		return;
-	}
-	
-}
-
-
 
 
 void pipeImplementation(char* command1, char* command2)
 {
 	printf("Found |\n");
 	/*
-	int status;
-	int fd[3];
+	int fd[2];
 	if(fork() == 0)
 	{
 		pipe(fd);
 		if(fork() == 0)
 		{
-		
-			if(fork() == 0)
-			{
 			//cmd1 writer
-			close(1);
+			close(STDOUT_FILENO);
 			dup(fd[1]);
 			close(fd[0]);
 			close(fd[1]);
 			//execute command
-			}
-			else
-			{
+			exit(1);
+		}
+		else
+		{
 			//cmd2 reader
-			close(0);
+			close(STDIN_FILENO);
 			dup(fd[0]);
 			close(fd[0]);
 			close(fd[1]);
 			//execute command
-			
-			close(2)
-			dup(fd[2])
-			close(fd[1])
-			close(fd[1])
-			//execute
-			
-			}
-		}
-		else
-		{
-			//cmd3 
-			close(1)
-			dup(fd[1])
-			close(fd[1])
-			close(fd[2])
-			//execute
+			exit(1);
 		}
 	}
 	else
@@ -794,8 +938,6 @@ void pipeImplementation(char* command1, char* command2)
 		//parent shell
 		close(fd[0]);
 		close(fd[1]);
-		waitpid(pid1, &status, 0);
-		waitpid(pid2, &status 0);
 	}
 	*/
 }
@@ -803,7 +945,7 @@ void pipeImplementation(char* command1, char* command2)
 int isBuiltIn(char* token)
 {
 	if (strcmp(token, "exit") == 0 || strcmp(token, "cd") == 0 
-	|| strcmp(token, "echo") == 0 || strcmp(token, "jobs"))
+	|| strcmp(token, "echo") == 0 || strcmp(token, "jobs") == 0)
 		return TRUE;
 	return FALSE;
 }
@@ -815,7 +957,7 @@ void builtIns(instruction* instr)
 	int numToks = instr->numTokens;
 
 
-	if(numToks-1 > 0)
+	if(numToks > 0)
 	{
 		if(strcmp(toks[0],"echo") == 0)
         {	
@@ -833,20 +975,25 @@ void builtIns(instruction* instr)
             }
 			else
             {
-				if(chdir(toks[1]) == 0)
+				if(chdir(resolvePath(toks[1])) == 0)
                     setenv("PWD",getcwd(buffer, sizeof buffer),1);
             }
 		}
 		else if(strcmp(toks[0],"jobs") == 0)
 		{
-            jobs(instr);
+            for(int i = 0;i < child_nb;i++)
+            {
+                printf("%d    %d    %d\n",i,child_pids[i],child_pids[i]);
+            }
+			
 		}
 		else if(strcmp(toks[0],"exit") == 0)
 		{
             int status;
             waitpid(-1,&status,0);
 
-
+			printf("Exiting now\n");
+			printf("%d instruction(s) entered\n");
 
 			clearInstruction(&(*instr));
 			exit(0);
@@ -862,7 +1009,7 @@ void builtIns(instruction* instr)
 
 
 //if env variable, remove '$' and make everything uppercase
-char * checkEnv(char * tkn)     
+char* checkEnv(char * tkn)     
 {
 	memmove(tkn, tkn+1, strlen (tkn+1) + 1);
 	for(int i = 0;i < strlen(tkn);i++)
@@ -873,20 +1020,20 @@ char * checkEnv(char * tkn)
 //echo function
 void echoToks(char** toks,int numToks)
 {
-			for(int i = 1;i < numToks; i++)		//loops thru all input
-			{				
-				if(toks[i][0] == '$')
-                {
-                    checkEnv(toks[i]);
-					printf("%s ",getenv(toks[i]));
-                }
-				else
-					printf("%s ",toks[i]);
-			}
-			printf("\n");
+	for(int i = 1;i < numToks; i++)		//loops thru all input
+	{				
+		if (toks[i] == NULL)
+			break;
+		if(toks[i][0] == '$')
+		{
+			checkEnv(toks[i]);
+			printf("%s ",getenv(toks[i]));
+		}
+		else
+			printf("%s ",toks[i]);
+	}
+	printf("\n");
 }
-
-
 
 void backgroundProc(char ** cmd, int numToks)
 {	
