@@ -12,6 +12,39 @@ Thomas: Parsing, Shortcut Resolution, Path Resolution
 
 Taylor: Execution, I/O Redirection, Piping
 
+Tar-Archive Contents
+--------------------
+shellp1.c
+
+makefile
+
+README.md
+
+How We Compile Our Executables Using Makefile
+---------------------------------------------
+1. Type make.
+2. Run executable shell.
+
+Known Bugs
+-----------
+-After using the input operator, occasionally the compiler gets stuck but typing another command can fix the problem so that our shell may keep running.
+
+-After using one pipe command, the shell breaks and you have to exit and restart.
+
+-The background processing for I/O Redirection does not inform you when it has finished.
+
+-Jobs code is written but it is not outputting to the screen as it should be.
+
+-More than one pipe runs as a single pipe.
+
+Unfinished Portions of the Project
+------------------------------------
+There are no unfinished portions of the project, code was written for every part.
+
+Special Considerations
+------------------------
+There are no special considerations for our project.
+
 Git Log
 ------------
 
@@ -116,35 +149,5 @@ c00231f - EarlySD, Wed Jan 15 13:00:22 2020 -0500 : Update README.md
 c579964 - trd16, Wed Jan 15 12:40:14 2020 -0500 : Initial commit
 
 
-Tar-Archive Contents
---------------------
-shellp1.c
 
-makefile
 
-README.md
-
-How We Compile Our Executables Using Makefile
----------------------------------------------
-1. Type make.
-2. Run executable shell.
-
-Known Bugs
------------
--After using the input operator, occasionally the compiler gets stuck but typing another command can fix the problem so that our shell may keep running.
-
--After using one pipe command, the shell breaks and you have to exit and restart.
-
--The background processing for I/O Redirection does not inform you when it has finished.
-
--Jobs code is written but it is not outputting to the screen as it should be.
-
--More than one pipe runs as a single pipe.
-
-Unfinished Portions of the Project
-------------------------------------
-There are no unfinished portions of the project, code was written for every part.
-
-Special Considerations
-------------------------
-There are no special considerations for our project.
