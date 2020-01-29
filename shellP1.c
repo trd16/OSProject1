@@ -318,6 +318,8 @@ int numberOfDirs(char* path)
 	return num;
 }
 
+///expands path to absolute path
+///use for file
 char* expandPath(char* path)
 {
 	char* newPath;
@@ -336,7 +338,7 @@ char* expandPath(char* path)
 			newPath[j++] = path[i];
 		newPath[j] = '\0';
 	}
-	//relative path
+	//from root dir
 	else if (path[0] != '/')
 	{
 		int len = strlen(getenv("PWD")) + strlen(path);
@@ -345,11 +347,12 @@ char* expandPath(char* path)
 		strcat(newPath, "/");
 		strcat(newPath, path);
 	}
-	//from root dir
+	//relative
 	else
 	{
-		newPath = (char*)malloc((strlen(path) + 1) * sizeof(char));
-		strcpy(newPath, path);
+		newPath = (char*)malloc((strlen(path) + 3) * sizeof(char));
+		strcpy(newPath, "./");
+		strcat(newPath, path);
 	}
 
 	//return newPath if no further directories to expand. ie at root
@@ -399,7 +402,6 @@ char* expandPath(char* path)
 	return newPath;
 }
 
-
 int isValidDir(char* path)
 {
 	DIR* dir = opendir(path);
@@ -418,6 +420,16 @@ int isValidFile(char* path)
 	return FALSE;
 }
 
+int isExecutable(char* file)
+{
+	if (access(file, X_OK) != -1)
+		return TRUE;
+	return FALSE;
+}
+
+///expands path of executables to absolute path
+///searches in PWD and all of PATH
+///return null if not found
 char* resolvePath(char* path)
 {
 	//absolute path
