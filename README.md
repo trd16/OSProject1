@@ -31,7 +31,7 @@ How We Compile Our Executables Using Makefile
 
 Known Bugs
 -----------
--After using the input operator, occasionally the compiler gets stuck and you have to ctrl c out of it.
+-After using the input operator, occasionally the compiler gets stuck but typing another command can fix the problem so that our shell may keep running.
 
 -After using one pipe command, the shell breaks and you have to exit and restart.
 
