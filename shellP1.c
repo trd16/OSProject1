@@ -83,11 +83,13 @@ int main() {
 	instruction instr;
 	instr.tokens = NULL;
 	instr.numTokens = 0;
+	instr.input = -1;
+	instr.output = -1;
+	instr.cmd1 = -1;
+	instr.cmd2 = -1;
+	instr.cmd3 = -1;
 
 	while (1) {
-
-		checkBg();
-
 		printf("%s",getenv("USER"));
 		printf("@");
 		printf("%s",getenv("MACHINE"));
@@ -134,15 +136,16 @@ int main() {
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
 
-		//checking for I/O Errors, Piping Errors
-		if(strcmp(instr.tokens[0],"|")==0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
+		//checking for I/O Errors, Piping Errors at beginning of input
+		if(strcmp(instr.tokens[0],"|") == 0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
 		{
 			printf("Invalid Syntax\n");
 			addNull(&instr);
 			clearInstruction(&instr);
 			continue;
 		}
-		if(strcmp(instr.tokens[instr.numTokens-1], "|") == 0 || strcmp(instr.tokens[instr.numTokens - 1], "<") == 0 
+		//checking for I/O Errors, Piping Errors at end of input
+		if(strcmp(instr.tokens[instr.numTokens - 1], "|") == 0 || strcmp(instr.tokens[instr.numTokens - 1], "<") == 0 
 			|| strcmp(instr.tokens[instr.numTokens - 1],">") == 0)
 		{
 			printf("Invalid Syntax\n");
@@ -152,115 +155,254 @@ int main() {
 		}
 
 		//loop through all tokens to find errors
-		int iredir = FALSE, oredir, pipes = 0, background = FALSE;
+		int iredir = FALSE, oredir = FALSE, pipes = 0, foreground = FALSE, background = FALSE, error = FALSE;
 		for (int i = 0; i < instr.numTokens; ++i)
 		{
-			if (isBuiltIn(instr.tokens[i]))
+			//checking first token
+			if (i == 0)
 			{
-				builtIns(&instr);
-				break;
-			}
-			//output redirection
-			else if (strcmp(instr.tokens[i], ">") == 0) 
-			{
-				if (oredir)
+				//foreground operation
+				if (strcmp(instr.tokens[i], "&") == 0)
+					foreground = TRUE;
+				//error if not executable or 
+				else if (!isBuiltIn(instr.tokens[i]) && !isExecutable(resolvePath(instr.tokens[i])))
 				{
-					printf("ERROR: Multiple redirections of the same type are not allowed\n");
+					if (strcmp(instr.tokens[i], "<") == 0 || strcmp(instr.tokens[i], ">") == 0 || strcmp(instr.tokens[i], "|") == 0)
+						printf("Invalid syntax\n");
+					else
+						printf("%s: Command not found.\n", instr.tokens[i]);
+					error = TRUE;
 					break;
 				}
-				oredir = TRUE;
 			}
-			//input redirection
-			else if (strcmp(instr.tokens[i], "<") == 0)
+			//checking second token
+			else if (i == 1 && foreground)
+			{
+				//foreground operation
+				if (!isExecutable(resolvePath(instr.tokens[i])) && !isBuiltIn(instr.tokens[i]))
+				{
+					if (strcmp(instr.tokens[i], "<") == 0 || strcmp(instr.tokens[i], ">") == 0 || strcmp(instr.tokens[i], "|") == 0)
+						printf("Invalid syntax\n");
+					else 
+						printf("%s: Command not found.\n");
+					error = TRUE;
+					break;
+				}
+			}
+			
+			//checking for input redirection
+			if (strcmp(instr.tokens[i], "<") == 0)
 			{
 				if (iredir)
 				{
-					printf("ERROR: Multiple redirections of the same type are not allowed\n");
+					printf("Can only take input from one file\n");
+					error = TRUE;
 					break;
 				}
 				iredir = TRUE;
 			}
-			//Pipes
+			//output redirection
+			else if (strcmp(instr.tokens[i], ">") == 0)
+			{
+				if (oredir)
+				{
+					printf("Can only output to one file\n");
+					error = TRUE;
+					break;
+				}
+				oredir = TRUE;
+			}
+			//piping
 			else if (strcmp(instr.tokens[i], "|") == 0)
 			{
 				if (++pipes > 2)
 				{
-					printf("ERROR: No more than two pipes are allowed at once");
+					error = TRUE;
+					printf("No more than two pipes are allowed\n");
 					break;
 				}
 			}
 			//background processing
-			else if (strcmp(instr.tokens[i], "&") == 0)
+			else if (strcmp(instr.tokens[i], "&") == 0 && i != 0)
 			{
 				background = TRUE;
-			}
-			else 
-			{
-				instr.tokens[i] = resolvePath(instr.tokens[i]);
-				if (instr.tokens[i] == NULL){
-					if (i == 0 || i == 1 && strcmp(instr.tokens[i], "&") == 0)
-						printf("Unknown command\n");
-					else
-						printf("No such file or path");
+				if (i +1 < instr.numTokens)
+				{
+					error = TRUE;
+					printf("Invalid syntax\n");
+					break;
 				}
-				//if (stat(file, &sb) == 0 && sb.st_mode & S_IXUSR) 
 			}
+			else if (iredir && instr.input == -1)
+				instr.input = i;
+			else if (oredir && instr.output == -1)
+				instr.output = i;
+			else if (pipes)
+			{
+				if (pipes == 1 && instr.cmd2 == -1)
+					instr.cmd2 = i;
+				if (pipes == 2 && instr.cmd3 == -1)
+					instr.cmd3 = i;
+			}
+			else if (instr.cmd1 == -1 && instr.tokens[i][0] != '&')
+				instr.cmd1 = i;
 			
 			//pipes and redirection not allowed at same time
 			if (pipes && (iredir || oredir))
 			{
-				printf("ERROR: Pipes and I/O redirection cannot occur together\n");
+				printf("Piping and I/O redirection cannot occur together\n");
+				error = TRUE;
 				break;
 			}
 		}
 
-
-		if (iredir || oredir)
+		//redirection without file 
+		if ((iredir && instr.input == -1) || (oredir && instr.output == -1))
 		{
-			//checking for I/O Redirection & Piping
-			int j;
-			for(j = 0; j < instr.numTokens; ++j)
+			printf("Invalid syntax.\n");
+			error = TRUE;
+		}
+		
+		else if (instr.cmd1 == -1)
+		{
+			printf("Invalid syntax.\n");
+			error = TRUE;
+		}
+
+		if (!error)
+		{	
+			//split instr into temp instructions with only the command
+			instruction tempInstr;
+			tempInstr.numTokens = 0;
+			tempInstr.tokens = NULL;
+			
+			printf("%d\n", instr.cmd1);
+			printf("%d\n", instr.cmd2);
+			printf("%d\n", instr.cmd3);
+			
+			int i;
+			for (i = instr.cmd1; i < instr.numTokens; ++i)
 			{
-				if(strcmp(instr.tokens[j], "<") == 0)
+				if (i == instr.cmd1)
 				{
-					instr.input = j + 1; 
+					if (isBuiltIn(instr.tokens[i]))
+					{
+						addToken(&tempInstr, instr.tokens[i]);
+					}
+					else 
+					{
+						char* temp = resolvePath(instr.tokens[i]);
+						if (!isExecutable(temp))
+						{
+							error = TRUE;
+							printf("%s: Command not foun-d.\n", instr.tokens[i]);
+							break;
+						}
+						addToken(&tempInstr, instr.tokens[i]);
+					}
 				}
-				if(strcmp(instr.tokens[j], ">") == 0)
+				else
 				{
-					instr.output = j + 1;
+					if (strcmp(instr.tokens[i], ">") == 0 || strcmp(instr.tokens[i], "<") == 0 
+					|| strcmp(instr.tokens[i], "&") == 0 || strcmp(instr.tokens[i], "|") == 0)
+						break;
+					
+					if (instr.tokens[i][0] == '-' || instr.tokens[i][0] == '$')
+						addToken(&tempInstr, instr.tokens[i]);
+					
+					//files and directories
+					else 
+						addToken(&tempInstr, expandPath(instr.tokens[i]));
 				}
-				
-				if (instr.input != -1 && instr.output != -1)
-					break;
 			}
 			
-			//invalid syntax CMD > & FILE and CMD > & FILE
-			if (instr.input != -1 && strcmp(instr.tokens[instr.input], "&") == 0
-			|| instr.output != -1 && strcmp(instr.tokens[instr.output], "&") == 0)
+			addNull(&tempInstr);
+			
+			//execute
+			if (!error)
 			{
-				printf("Invalid syntax\n");
-				continue;
-			}
-		}
-		else if (pipes)
-		{
-			int j;
-			for(j = 0; j < instr.numTokens; ++j)
-			{ 
-				if(strcmp(instr.tokens[j],"|") == 0)
+				if (iredir)
 				{
-					char* command1 = instr.tokens[j-1];
-					char* command2 = instr.tokens[j+1];
-					pipeImplementation(command1, command2);
+					if(fork() == 0)
+					{
+						//here
+						open(instr.tokens[instr.output], O_RDONLY);
+						close(0);
+						dup(3);
+						close(3);
+						
+						if (isBuiltIn(tempInstr.tokens[0]))
+							builtIns(&tempInstr);
+						else
+							execute(tempInstr.tokens);
+						
+						exit(1);
+						//to here
+					}
+					else
+						close(3);
+				}
+				else if (oredir)
+				{
+					if(fork() == 0)
+					{
+						if (background)
+						{
+							//here
+							open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
+							close(1);
+							dup(3);
+							close(3);
+
+							if (isBuiltIn(tempInstr.tokens[0]))
+								builtIns(&tempInstr);
+							else
+								execute(tempInstr.tokens);
+
+							exit(1);
+							//to here
+						}
+						else
+						{
+							open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
+							close(1);
+							dup(3);
+							close(3);
+
+							if (isBuiltIn(tempInstr.tokens[0]))
+								builtIns(&tempInstr);
+							else
+								execute(tempInstr.tokens);
+
+							exit(1);	
+						}
+					}
+					else
+						close(3);
+				}
+				//io redir
+				else if (pipes)
+				{
+					for (i = instr.cmd2; i < instr.numTokens; ++i)
+					{
+						if (instr.tokens[i][0] == '|' || instr.tokens[i][0] == '&')
+							break;
+					}
+				}
+				else
+				{
+					if (isBuiltIn(tempInstr.tokens[0]))
+					builtIns(&tempInstr);
+				else
+					execute(tempInstr.tokens);
 				}
 			}
+			
+			clearInstruction(&tempInstr);
 		}
-		else if(background)
-			backgroundProc(instr.tokens,instr.numTokens);
-		//normal execution
-		else 
-			execute(instr.tokens);
+		
 
+		
 		addNull(&instr);
 		clearInstruction(&instr);
 	}
