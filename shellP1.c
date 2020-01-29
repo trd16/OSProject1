@@ -91,7 +91,7 @@ int main() {
 	instr.cmd1 = -1;
 	instr.cmd2 = -1;
 	instr.cmd3 = -1;
-	int numCommands = 0,
+	int numCommands = 0;
 
 	while (1) {
 		
