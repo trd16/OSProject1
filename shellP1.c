@@ -94,6 +94,9 @@ int main() {
 	int numCommands = 0,
 
 	while (1) {
+		
+		checkBg();
+		
 		printf("%s",getenv("USER"));
 		printf("@");
 		printf("%s",getenv("MACHINE"));
@@ -634,13 +637,13 @@ int main() {
 				}
 				
 				//no piping or redirection normal execution
+				else if(background)
+					backgroundProc(instr.tokens,instr.numTokens);
+				else if (isBuiltIn(tempInstr.tokens[0]))
+					builtIns(&tempInstr);
 				else
-				{
-					if (isBuiltIn(tempInstr.tokens[0]))
-						builtIns(&tempInstr);
-					else
-						execute(tempInstr.tokens);
-				}
+					execute(tempInstr.tokens);
+				
 			}
 			
 			clearInstruction(&tempInstr);
