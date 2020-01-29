@@ -30,7 +30,7 @@ How We Compile Our Executables Using Makefile
 
 Known Bugs
 -----------
--After runnning ls twice, it starts throwing an error
+-After using the input operator, occasionally the compiler gets stuck and you have to ctrl c out of it.
 
 Unfinished Portions of the Project
 ------------------------------------
