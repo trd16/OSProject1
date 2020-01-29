@@ -746,29 +746,47 @@ void pipeImplementation(char* command1, char* command2)
 	printf("Found |\n");
 	/*
 	int status;
-	int fd[2];
+	int fd[3];
 	if(fork() == 0)
 	{
 		pipe(fd);
 		if(fork() == 0)
 		{
+		
+			if(fork() == 0)
+			{
 			//cmd1 writer
-			close(STDOUT_FILENO);
+			close(1);
 			dup(fd[1]);
 			close(fd[0]);
 			close(fd[1]);
 			//execute command
-			exit(1);
-		}
-		else
-		{
+			}
+			else
+			{
 			//cmd2 reader
-			close(STDIN_FILENO);
+			close(0);
 			dup(fd[0]);
 			close(fd[0]);
 			close(fd[1]);
 			//execute command
-			exit(1);
+			
+			close(2)
+			dup(fd[2])
+			close(fd[1])
+			close(fd[1])
+			//execute
+			
+			}
+		}
+		else
+		{
+			//cmd3 
+			close(1)
+			dup(fd[1])
+			close(fd[1])
+			close(fd[2])
+			//execute
 		}
 	}
 	else
