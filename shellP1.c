@@ -36,6 +36,7 @@ typedef struct
 {
 	char** tokens;
 	int numTokens, input, output;
+	int cmd1, cmd2, cmd3;
 } instruction;
 
 typedef struct 
@@ -451,6 +452,9 @@ void clearInstruction(instruction* instr_ptr)
 	instr_ptr->numTokens = 0;
 	instr_ptr->input = -1;
 	instr_ptr->output = -1;
+	instr_ptr->cmd1 = -1;
+	instr_ptr->cmd2 = -1;
+	instr_ptr->cmd3 = -1;
 }
 
 int isPath(char* token)
@@ -741,7 +745,6 @@ void pipeImplementation(char* command1, char* command2)
 {
 	printf("Found |\n");
 	/*
-	int status;
 	int fd[2];
 	if(fork() == 0)
 	{
@@ -772,8 +775,8 @@ void pipeImplementation(char* command1, char* command2)
 		//parent shell
 		close(fd[0]);
 		close(fd[1]);
-		waitpid(pid1, &status, 0);
-		waitpid(pid2, &status, 0);
+		waitpid(pid1, NULL, 0);
+		waitpid(pid2, NULL, 0);
 	}
 	*/
 }
