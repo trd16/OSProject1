@@ -400,7 +400,8 @@ int main() {
 				}
 				else if (oredir)
 				{
-					
+					if(fork() == 0)
+					{
 						if (background)
 						{
 							int status;
@@ -414,7 +415,7 @@ int main() {
 							{
 								//child
 								setpgid(0, 0);
-								open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
+								open(expandPath(instr.tokens[instr.output]), O_RDWR | O_CREAT | O_TRUNC);
 								close(0);
 								dup(3);
 								close(3);
@@ -438,7 +439,7 @@ int main() {
 						}
 						else
 						{
-							open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
+							open(expandPath(instr.tokens[instr.output]), O_RDWR | O_CREAT | O_TRUNC);
 							close(1);
 							dup(3);
 							close(3);
