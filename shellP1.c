@@ -76,7 +76,7 @@ void checkBg();
 //globals
 //globals
 pid_t child_pids[1000], pid, pid1, pid2, pid3;  
-int child_nb = 0,  typed = 0;
+int child_nb = 0, numCommands = 0, typed = 0;
 queue q[100];
 
 int main() {
@@ -91,17 +91,13 @@ int main() {
 	instr.cmd1 = -1;
 	instr.cmd2 = -1;
 	instr.cmd3 = -1;
-	int numCommands = 0;
 
 	while (1) {
-		
-		checkBg();
-		
 		printf("%s",getenv("USER"));
 		printf("@");
 		printf("%s",getenv("MACHINE"));
 		printf(":%s>",getenv("PWD"));
-
+		++typed;
 		// loop reads character sequences separated by whitespace
 		do {
 			//scans for next token and allocates token var to size of scanned token
@@ -143,7 +139,7 @@ int main() {
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
 
-		++typed;
+		
 
 		//checking for I/O Errors, Piping Errors at beginning of input
 		if(strcmp(instr.tokens[0],"|") == 0 || strcmp(instr.tokens[0],"<") == 0 || strcmp(instr.tokens[0], ">") == 0)
@@ -382,18 +378,8 @@ int main() {
 
 								exit(1);
 							}
-							else
-							{
-								//parent
-								insertQueue(pid,instr.tokens,instr.numTokens);
-								printf("\n[%d]	[%d]\n",child_nb-1,pid);
-
-								waitpid(pid,&status,WNOHANG);
-								
-							}
 						}
-						else
-						{
+						else{
 							int fd = open(instr.tokens[instr.input], O_RDONLY);
 							close(0);
 							dup(3);
@@ -414,8 +400,7 @@ int main() {
 				}
 				else if (oredir)
 				{
-					if(fork() == 0)
-					{
+					
 						if (background)
 						{
 							int status;
@@ -693,14 +678,12 @@ int main() {
 					}
 				}
 				
-				//no piping or redirection normal execution
 				else if(background)
 					backgroundProc(instr.tokens,instr.numTokens);
 				else if (isBuiltIn(tempInstr.tokens[0]))
 					builtIns(&tempInstr);
 				else
 					execute(tempInstr.tokens);
-				
 			}
 			
 			clearInstruction(&tempInstr);
@@ -1053,7 +1036,7 @@ void builtIns(instruction* instr)
             waitpid(-1,&status,0);
 
 			printf("Exiting now\n");
-			printf("%d instruction(s) entered\n");
+			printf("%d instruction(s) entered\n", typed);
 
 			clearInstruction(&(*instr));
 			exit(0);
