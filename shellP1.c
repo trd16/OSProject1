@@ -357,18 +357,56 @@ int main() {
 				{
 					if(fork() == 0)
 					{
-						int fd = open(instr.tokens[instr.input], O_RDONLY);
-						close(0);
-						dup(3);
-						close(3);
-						
-						dup2(fd, 0);
-						if (isBuiltIn(tempInstr.tokens[0]))
-							builtIns(&tempInstr);
+						if (background)		//background proc
+						{
+							int status;
+							pid_t pid = fork();
+							if(pid == -1)
+							{
+								//error
+								exit(1);
+							}
+							else if(pid == 0)
+							{
+								//child
+								setpgid(0, 0);
+								open(instr.tokens[instr.output], O_RDONLY);
+								close(0);
+								dup(3);
+								close(3);
+								
+								if (isBuiltIn(tempInstr.tokens[0]))
+									builtIns(&tempInstr);
+								else
+									execute(tempInstr.tokens);
+
+								exit(1);
+							}
+							else
+							{
+								//parent
+								insertQueue(pid,instr.tokens,instr.numTokens);
+								printf("\n[%d]	[%d]\n",child_nb-1,pid);
+
+								waitpid(pid,&status,WNOHANG);
+								
+							}
+						}
 						else
-							execute(tempInstr.tokens);
-						
-						exit(1);
+						{
+							int fd = open(instr.tokens[instr.input], O_RDONLY);
+							close(0);
+							dup(3);
+							close(3);
+							
+							dup2(fd, 0);
+							if (isBuiltIn(tempInstr.tokens[0]))
+								builtIns(&tempInstr);
+							else
+								execute(tempInstr.tokens);
+							
+							exit(1);
+						}
 					}
 					else
 						close(3);
@@ -380,19 +418,38 @@ int main() {
 					{
 						if (background)
 						{
-							//here
-							open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
-							close(1);
-							dup(3);
-							close(3);
+							int status;
+							pid_t pid = fork();
+							if(pid == -1)
+							{
+								//error
+								exit(1);
+							}
+							else if(pid == 0)
+							{
+								//child
+								setpgid(0, 0);
+								open(instr.tokens[instr.output], O_RDWR | O_CREAT | O_TRUNC);
+								close(0);
+								dup(3);
+								close(3);
+								
+								if (isBuiltIn(tempInstr.tokens[0]))
+									builtIns(&tempInstr);
+								else
+									execute(tempInstr.tokens);
 
-							if (isBuiltIn(tempInstr.tokens[0]))
-								builtIns(&tempInstr);
+								exit(1);
+							}
 							else
-								execute(tempInstr.tokens);
+							{
+								//parent
+								insertQueue(pid,instr.tokens,instr.numTokens);
+								printf("\n[%d]	[%d]\n",child_nb-1,pid);
 
-							exit(1);
-							//to here
+								waitpid(pid,&status,WNOHANG);
+								
+							}
 						}
 						else
 						{
