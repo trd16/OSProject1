@@ -37,9 +37,13 @@ Known Bugs
 
 -The background processing for I/O Redirection does not inform you when it has finished.
 
+-Jobs code is written but it is not outputting to the screen as it should be.
+
+-More than one pipe runs as a single pipe.
+
 Unfinished Portions of the Project
 ------------------------------------
--Jobs code is written but it is not outputting to the screen as it should be.
+There are no unfinished portions of the project, code was written for every part.
 
 Special Considerations
 ------------------------
