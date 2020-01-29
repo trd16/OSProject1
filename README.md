@@ -46,6 +46,22 @@ There are no special considerations for our project.
 Git Log
 ------------
 
+17d8833 - trd16, Tue Jan 28 23:44:44 2020 -0500 : Update README.md
+
+49f6ca9 - tstar98, Tue Jan 28 23:44:09 2020 -0500 : Final commit
+
+49713ca - tstar98, Tue Jan 28 23:38:08 2020 -0500 : Update shellP1.c
+
+61e3b67 - EarlySD, Tue Jan 28 23:23:07 2020 -0500 : Update shellP1.c
+
+c4be429 - EarlySD, Tue Jan 28 23:17:23 2020 -0500 : i/o bg
+
+d0afb43 - EarlySD, Tue Jan 28 23:12:49 2020 -0500 : Update shellP1.c
+
+ef05fa5 - EarlySD, Tue Jan 28 23:12:01 2020 -0500 : Update shellP1.c
+
+8825735 - tstar98, Tue Jan 28 23:09:13 2020 -0500 : Almost done
+
 8b57126 - trd16, Tue Jan 28 22:37:34 2020 -0500 : Update README.md
 
 c581195 - trd16, Tue Jan 28 22:35:33 2020 -0500 : Update README.md
